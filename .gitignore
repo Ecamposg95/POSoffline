@@ -1,11 +1,7 @@
-# Ignorar entorno virtual y archivos grandes
+# .gitignore
 venv/
-*.pyc
 __pycache__/
-*.sqlite
+*.pyc
 *.db
 *.log
 *.so
-*.dll
-*.exe
-*.app
