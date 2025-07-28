@@ -1,10 +1,10 @@
-# gui/main_window.py
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QHBoxLayout, QVBoxLayout, QPushButton, QLabel, QStackedWidget
 )
 from PySide6.QtCore import Qt
 from gui.productos_window import ProductosWindow
 from gui.ventas_window import VentasWindow
+from gui.datos_window import DatosWindow
 
 
 class MainWindow(QMainWindow):
@@ -56,20 +56,19 @@ class MainWindow(QMainWindow):
         btn_inventario = QPushButton("Inventario")
         btn_corte = QPushButton("Corte")
         btn_config = QPushButton("Configuración")
-        btn_sucursales = QPushButton("Sucursales")
-        btn_fondos = QPushButton("Fondos")
+        btn_datos = QPushButton("Datos")  # Botón nuevo para ver estadísticas
 
-        for btn in [btn_venta, btn_productos, btn_inventario, btn_corte, btn_config, btn_sucursales, btn_fondos]:
+        for btn in [btn_venta, btn_productos, btn_inventario, btn_corte, btn_config, btn_datos]:
             btn.setStyleSheet("text-align: left; padding: 10px; background: none; color: white;")
             layout.addWidget(btn)
 
         # Conexión de botones
         btn_productos.clicked.connect(self.abrir_productos)
         btn_venta.clicked.connect(self.abrir_ventas)
-        
+        btn_datos.clicked.connect(self.abrir_datos)
+
         # Estilo del sidebar
         sidebar.setStyleSheet("background-color: #6A3093;")
-
         return sidebar
 
     def create_main_panel(self):
@@ -98,3 +97,7 @@ class MainWindow(QMainWindow):
     def abrir_ventas(self):
         self.ventas_win = VentasWindow()
         self.ventas_win.show()
+
+    def abrir_datos(self):
+        self.datos_win = DatosWindow()
+        self.datos_win.show()

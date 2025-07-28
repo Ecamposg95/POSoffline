@@ -25,7 +25,7 @@ class LoginWindow(QWidget):
         left_panel.setAutoFillBackground(True)
         left_panel.setPalette(left_palette)
 
-        logo = QLabel("data ✱ POS", left_panel)
+        logo = QLabel("data X POS", left_panel)
         logo.setAlignment(Qt.AlignCenter)
         logo.setStyleSheet("color: white; font-size: 28px; font-weight: bold;")
         logo.setGeometry(50, 200, 300, 50)

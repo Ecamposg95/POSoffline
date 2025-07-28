@@ -1,9 +1,11 @@
-# gui/productos_window.py
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QPushButton, QHBoxLayout, QTableWidget,
-    QTableWidgetItem, QMessageBox, QInputDialog
+    QTableWidgetItem, QMessageBox, QInputDialog, QFileDialog
 )
-from database.db_handler import get_all_products, add_product, delete_product, update_product
+from database.db_handler import (
+    get_all_products, add_product, delete_product,
+    update_product, importar_productos_desde_excel
+)
 
 
 class ProductosWindow(QWidget):
@@ -26,14 +28,17 @@ class ProductosWindow(QWidget):
         self.btn_add = QPushButton("Agregar Producto")
         self.btn_edit = QPushButton("Editar Seleccionado")
         self.btn_delete = QPushButton("Eliminar Seleccionado")
+        self.btn_importar = QPushButton("Importar desde Excel")
 
         self.btn_add.clicked.connect(self.agregar_producto)
         self.btn_edit.clicked.connect(self.editar_producto)
         self.btn_delete.clicked.connect(self.eliminar_producto)
+        self.btn_importar.clicked.connect(self.importar_excel)
 
         btn_layout.addWidget(self.btn_add)
         btn_layout.addWidget(self.btn_edit)
         btn_layout.addWidget(self.btn_delete)
+        btn_layout.addWidget(self.btn_importar)
         self.layout.addLayout(btn_layout)
 
         self.load_products()
@@ -106,4 +111,10 @@ class ProductosWindow(QWidget):
         confirm = QMessageBox.question(self, "Eliminar", "¿Eliminar este producto?", QMessageBox.Yes | QMessageBox.No)
         if confirm == QMessageBox.Yes:
             delete_product(prod_id)
+            self.load_products()
+
+    def importar_excel(self):
+        file_path, _ = QFileDialog.getOpenFileName(self, "Selecciona archivo Excel", "", "Archivos Excel (*.xlsx)")
+        if file_path:
+            importar_productos_desde_excel(file_path)
             self.load_products()

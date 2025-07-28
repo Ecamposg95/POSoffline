@@ -1,14 +1,14 @@
-# database/db_handler.py
 import sqlite3
 import os
 from datetime import datetime
+import pandas as pd
 
-
+DB_PATH = "data/pos.db"
 
 def init_db():
-    os.makedirs("data", exist_ok=True)  # Asegura que la carpeta exista
+    os.makedirs("data", exist_ok=True)
 
-    conn = sqlite3.connect("data/pos.db")
+    conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
     cursor.execute("""
@@ -45,10 +45,12 @@ def init_db():
     conn.commit()
     conn.close()
 
-# database/db_handler.py
+# ────────────────────────────────────────────────
+# FUNCIONES DE PRODUCTOS
+# ────────────────────────────────────────────────
 
 def get_all_products():
-    conn = sqlite3.connect("data/pos.db")
+    conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM productos")
     rows = cursor.fetchall()
@@ -56,18 +58,20 @@ def get_all_products():
     return rows
 
 def add_product(sku, nombre, precio1, precio2, precio3, stock, categoria, departamento):
-    conn = sqlite3.connect("data/pos.db")
+    conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    cursor.execute("""
-        INSERT INTO productos (sku, nombre, precio1, precio2, precio3, stock, categoria, departamento)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    """, (sku, nombre, precio1, precio2, precio3, stock, categoria, departamento))
-    conn.commit()
+    try:
+        cursor.execute("""
+            INSERT INTO productos (sku, nombre, precio1, precio2, precio3, stock, categoria, departamento)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, (sku, nombre, precio1, precio2, precio3, stock, categoria, departamento))
+        conn.commit()
+    except sqlite3.IntegrityError:
+        print(f"⚠️ SKU duplicado no insertado: {sku}")
     conn.close()
 
-
 def update_product(prod_id, sku, nombre, precio1, precio2, precio3, stock, categoria, departamento):
-    conn = sqlite3.connect("data/pos.db")
+    conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute("""
         UPDATE productos
@@ -77,17 +81,19 @@ def update_product(prod_id, sku, nombre, precio1, precio2, precio3, stock, categ
     conn.commit()
     conn.close()
 
-
 def delete_product(prod_id):
-    conn = sqlite3.connect("data/pos.db")
+    conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute("DELETE FROM productos WHERE id=?", (prod_id,))
     conn.commit()
     conn.close()
 
+# ────────────────────────────────────────────────
+# FUNCIONES DE VENTAS
+# ────────────────────────────────────────────────
 
 def add_venta(carrito):
-    conn = sqlite3.connect("data/pos.db")
+    conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
     total = sum(precio * cantidad for (_, _, precio, cantidad) in carrito)
@@ -98,9 +104,75 @@ def add_venta(carrito):
 
     for prod_id, _, precio, cantidad in carrito:
         subtotal = precio * cantidad
-        cursor.execute("INSERT INTO detalle_venta (venta_id, producto_id, cantidad, subtotal) VALUES (?, ?, ?, ?)",
-                       (venta_id, prod_id, cantidad, subtotal))
+        cursor.execute("""
+            INSERT INTO detalle_venta (venta_id, producto_id, cantidad, subtotal)
+            VALUES (?, ?, ?, ?)
+        """, (venta_id, prod_id, cantidad, subtotal))
+
         cursor.execute("UPDATE productos SET stock = stock - ? WHERE id = ?", (cantidad, prod_id))
 
     conn.commit()
     conn.close()
+
+
+def get_total_ventas():
+    conn = sqlite3.connect("data/pos.db")
+    cursor = conn.cursor()
+    cursor.execute("SELECT SUM(total) FROM ventas")
+    result = cursor.fetchone()[0]
+    conn.close()
+    return result if result else 0.0
+
+
+
+
+# ────────────────────────────────────────────────
+# IMPORTACIÓN MASIVA DESDE EXCEL
+# ────────────────────────────────────────────────
+
+def importar_productos_desde_excel(path):
+    try:
+        df = pd.read_excel(path)
+    except Exception as e:
+        print(f"❌ Error al leer el archivo: {e}")
+        return
+
+    required_cols = {"SKU", "Nombre", "Precio 1", "Precio 2", "Precio 3", "Stock", "Categoría", "Departamento"}
+    if not required_cols.issubset(set(df.columns)):
+        print(f"❌ El archivo no tiene las columnas requeridas: {required_cols}")
+        return
+
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    for _, row in df.iterrows():
+        sku = str(row["SKU"]).strip()
+        cursor.execute("SELECT id FROM productos WHERE sku = ?", (sku,))
+        existing = cursor.fetchone()
+
+        if existing:
+            # Actualiza si ya existe
+            cursor.execute("""
+                UPDATE productos SET
+                    nombre = ?, precio1 = ?, precio2 = ?, precio3 = ?,
+                    stock = ?, categoria = ?, departamento = ?
+                WHERE sku = ?
+            """, (
+                row["Nombre"], row["Precio 1"], row["Precio 2"], row["Precio 3"],
+                row["Stock"], row["Categoría"], row["Departamento"], sku
+            ))
+            print(f"🔄 Producto actualizado: {sku}")
+        else:
+            # Inserta si no existe
+            cursor.execute("""
+                INSERT INTO productos (sku, nombre, precio1, precio2, precio3, stock, categoria, departamento)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                sku, row["Nombre"], row["Precio 1"], row["Precio 2"],
+                row["Precio 3"], row["Stock"], row["Categoría"], row["Departamento"]
+            ))
+            print(f"✅ Producto insertado: {sku}")
+
+    conn.commit()
+    conn.close()
+    print("✔️ Importación completada con éxito.")
