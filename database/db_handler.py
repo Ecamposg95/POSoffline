@@ -14,9 +14,14 @@ def init_db():
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS productos (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        sku TEXT UNIQUE,
         nombre TEXT NOT NULL,
-        precio REAL NOT NULL,
-        stock INTEGER NOT NULL
+        precio1 REAL NOT NULL,
+        precio2 REAL,
+        precio3 REAL,
+        stock INTEGER NOT NULL,
+        categoria TEXT,
+        departamento TEXT
     )""")
 
     cursor.execute("""
@@ -50,19 +55,28 @@ def get_all_products():
     conn.close()
     return rows
 
-def add_product(nombre, precio, stock):
+def add_product(sku, nombre, precio1, precio2, precio3, stock, categoria, departamento):
     conn = sqlite3.connect("data/pos.db")
     cursor = conn.cursor()
-    cursor.execute("INSERT INTO productos (nombre, precio, stock) VALUES (?, ?, ?)", (nombre, precio, stock))
+    cursor.execute("""
+        INSERT INTO productos (sku, nombre, precio1, precio2, precio3, stock, categoria, departamento)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    """, (sku, nombre, precio1, precio2, precio3, stock, categoria, departamento))
     conn.commit()
     conn.close()
 
-def update_product(prod_id, nombre, precio, stock):
+
+def update_product(prod_id, sku, nombre, precio1, precio2, precio3, stock, categoria, departamento):
     conn = sqlite3.connect("data/pos.db")
     cursor = conn.cursor()
-    cursor.execute("UPDATE productos SET nombre=?, precio=?, stock=? WHERE id=?", (nombre, precio, stock, prod_id))
+    cursor.execute("""
+        UPDATE productos
+        SET sku=?, nombre=?, precio1=?, precio2=?, precio3=?, stock=?, categoria=?, departamento=?
+        WHERE id=?
+    """, (sku, nombre, precio1, precio2, precio3, stock, categoria, departamento, prod_id))
     conn.commit()
     conn.close()
+
 
 def delete_product(prod_id):
     conn = sqlite3.connect("data/pos.db")
